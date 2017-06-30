@@ -5,8 +5,18 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Drawing;
 using Microsoft.Win32;
+using System.Diagnostics;
+using System.IO;
 
-// https://alanbondo.wordpress.com/2008/06/22/creating-a-system-tray-app-with-c/
+/* credits
+ * source code
+ * https://alanbondo.wordpress.com/2008/06/22/creating-a-system-tray-app-with-c/
+ * icon credits
+ * https://www.iconfinder.com/iconsets/metro-ui-dock
+ * http://dakirby309.deviantart.com/
+ *
+ *
+ */
 
 namespace ProxySwitch
 {
@@ -30,18 +40,27 @@ namespace ProxySwitch
         {
             // Create a simple tray menu with only one item.
             trayMenu = new ContextMenu();
-            trayMenu.MenuItems.Add("ctnlm", OnChangeProxy_ctnlm);
-            trayMenu.MenuItems.Add("239", OnChangeProxy_239);
-            trayMenu.MenuItems.Add("224", OnChangeProxy_224);
-            trayMenu.MenuItems.Add("225", OnChangeProxy_225);
+
+            using (StreamReader reader = new StreamReader("config.txt"))
+            {
+                while (!reader.EndOfStream)
+                {
+                    string str = reader.ReadLine();
+                    trayMenu.MenuItems.Add(str, OnChangeProxy);
+                }
+
+                reader.Close();
+            }
+
+            trayMenu.MenuItems.Add("Proxy Settings", OnOpenProxySettings);
             trayMenu.MenuItems.Add("Exit", OnExit);
 
             // Create a tray icon. In this example we use a
             // standard system icon for simplicity, but you
             // can of course use your own custom icon too.
             trayIcon      = new NotifyIcon();
-            trayIcon.Text = "MyTrayApp";
-            trayIcon.Icon = new Icon(SystemIcons.Application, 40, 40);
+            trayIcon.Text = "ProxySwitch";
+            trayIcon.Icon = new Icon("icon.ico", 40, 40);
 
             // Add menu to tray icon and show it.
             trayIcon.ContextMenu = trayMenu;
@@ -56,24 +75,16 @@ namespace ProxySwitch
             base.OnLoad(e);
         }
 
-        private void OnChangeProxy_ctnlm(object sender, EventArgs e)
+        private void OnChangeProxy(object sender, EventArgs e)
         {
-            SetProxy("localhost:3128");
-        }
+            foreach (MenuItem menuItem in trayMenu.MenuItems)
+                menuItem.Checked = false;
 
-        private void OnChangeProxy_224(object sender, EventArgs e)
-        {
-            SetProxy("192.168.224.14:8080");
-        }
+            MenuItem menuItemSender = (MenuItem)sender;
+            menuItemSender.Checked = true;
 
-        private void OnChangeProxy_225(object sender, EventArgs e)
-        {
-            SetProxy("192.168.225.14:8080");
-        }
-
-        private void OnChangeProxy_239(object sender, EventArgs e)
-        {
-            SetProxy("192.168.239.14:8080");
+            string proxyAddress = menuItemSender.Text;
+            SetProxy(proxyAddress);
         }
 
         const string PROXY_SERVER_KEY = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings";
@@ -81,6 +92,11 @@ namespace ProxySwitch
         private void SetProxy(string address)
         {
             Registry.SetValue(PROXY_SERVER_KEY, "ProxyServer", address);
+        }
+
+        private void OnOpenProxySettings(object sender, EventArgs e)
+        {
+            Process.Start("inetcpl.cpl", ",4");
         }
 
         private void OnExit(object sender, EventArgs e)
