@@ -85,6 +85,7 @@ namespace ProxySwitch
 
             string proxyAddress = menuItemSender.Text;
             SetProxy(proxyAddress);
+            Process.Start("inetcpl.cpl", ",4");
         }
 
         const string PROXY_SERVER_KEY = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings";
